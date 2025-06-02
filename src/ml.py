@@ -3,27 +3,12 @@ from sklearn.metrics import (accuracy_score, f1_score, precision_score,
                              recall_score)
 from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import StandardScaler
+from anom import mi_adaptive_dp_clustering
 
-from anonimization import anonimization_clustering
 
-
-def cross_validate_k_fold(X, y, anon_training, anon_test, model, model_name, n_clusters, noise_factor=0.01):
-    """
-    Perform cross-validation with optional anonymization
-    
-    Args:
-        X: Feature matrix
-        y: Target vector
-        anon_training: Whether to anonymize training data
-        anon_test: Whether to anonymize test data
-        model: Model to evaluate
-        model_name: Name of the model
-        n_clusters: Number of clusters for anonymization
-        noise_factor: Factor to control noise magnitude (default: 0.01)
-    
-    Returns:
-        Cross-validation results
-    """
+def cross_validate_k_fold(X, y, anon_training, anon_test, model, model_name, n_clusters, 
+                         noise_factor=0.01, mi_weight=0.8, correlation_threshold=0.7, 
+                         noise_type='laplace'):
     kf = StratifiedKFold(n_splits=3)
     scaler = StandardScaler()
 
@@ -34,10 +19,20 @@ def cross_validate_k_fold(X, y, anon_training, anon_test, model, model_name, n_c
         y_train, y_test = y[train_index], y[test_index]
 
         if anon_training:
-            X_train, y_train = anonimization_clustering(X_train, y_train, n_clusters, noise_factor=noise_factor)
+           X_train, y_train = mi_adaptive_dp_clustering(
+               X_train, y_train, n_clusters, 
+               epsilon=noise_factor, mi_weight=mi_weight,
+               correlation_threshold=correlation_threshold,
+               noise_type=noise_type
+           )
 
         if anon_test:
-            X_test, y_test = anonimization_clustering(X_test, y_test, n_clusters, noise_factor=noise_factor)
+            X_test, y_test = mi_adaptive_dp_clustering(
+                X_test, y_test, n_clusters,
+                epsilon=noise_factor, mi_weight=mi_weight,
+                correlation_threshold=correlation_threshold, 
+                noise_type=noise_type
+            )
 
         X_train = scaler.fit_transform(X_train)
         X_test = scaler.transform(X_test)
@@ -57,28 +52,8 @@ def cross_validate_k_fold(X, y, anon_training, anon_test, model, model_name, n_c
         'f1_score': np.array(f1)
     }
 
-    print(f"{model_name}, anon_train={anon_training}, anon_test={anon_test}, noise={noise_factor}")
+    print(f"{model_name}, anon_train={anon_training}, anon_test={anon_test}, ε={noise_factor}, MI_w={mi_weight}")
     for k in results.keys():
         print(f"{k} ---> mean: {results[k].mean():.4f}, std: {results[k].std():.4f}")
 
     return [anon_training, anon_test, results['accuracy'].mean(), results['precision'].mean(), results['recall'].mean(), results['f1_score'].mean()]
-
-def find_best_results(results, feature_selections, feature_method, num_features):
-    best_results = []
-
-    scenarios = ['True_True', 'True_False', 'False_True', 'False_False']
-    for model_name in results['model'].unique():
-        for scenario in scenarios:
-            scenario_split = scenario.split('_')
-            anonymized_train = scenario_split[0] == 'True'
-            anonymized_test = scenario_split[1] == 'True'
-            model_results = results[
-                (results['model'] == model_name) &
-                (results['anonymized train'] == anonymized_train) &
-                (results['anonymized test'] == anonymized_test)
-            ]
-            if not model_results.empty:
-                best_result = model_results.loc[model_results['accuracy'].idxmax()]
-                best_results.append(best_result.to_list())
-
-    return best_results
