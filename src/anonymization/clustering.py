@@ -1,10 +1,9 @@
-# anonymization/clustering.py
 import numpy as np
 import time
 from sklearn.cluster import KMeans
 
-from .anon_main import MIAdaptiveDPAnonymizer  # Importação corrigida
-from .dp_mechanism import apply_simple_noise  # Importação corrigida
+from .anon_main import MIAdaptiveDPAnonymizer
+from .dp_mechanism import apply_simple_noise
 
 
 def mi_adaptive_dp_clustering(data, y, k, epsilon=1.0, mi_weight=0.8,
@@ -41,8 +40,6 @@ def mi_adaptive_dp_clustering(data, y, k, epsilon=1.0, mi_weight=0.8,
         cluster_y = y[cluster_indices]
 
         if cluster_data.shape[0] < 3:
-            # Note: A instância de MIAdaptiveDPAnonymizer não é usada se o dataset for muito pequeno
-            # A chamada para apply_simple_noise agora é direta do dp_mechanism
             anonymized_cluster = apply_simple_noise(cluster_data, epsilon_per_cluster, noise_type)
         else:
             anonymizer = MIAdaptiveDPAnonymizer(epsilon=epsilon_per_cluster,

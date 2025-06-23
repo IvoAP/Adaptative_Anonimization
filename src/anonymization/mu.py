@@ -50,7 +50,6 @@ class MutualInformationAnalyzer:
                 if j not in processed and abs(correlation_matrix[i, j]) > correlation_threshold:
                     group.append(j)
                     processed.add(j)
-
             redundancy_groups.append(group)
             processed.add(i)
 

@@ -9,6 +9,10 @@ DATASETS = {
         "filename": "adults.csv",
         "label_column": "income"
     },
+    "bank": {
+        "filename": "banking.csv",
+        "label_column": "y"  
+    },
     "ddos": {
         "filename": "ddos_csv_100000.csv",
         "label_column": "Label"
