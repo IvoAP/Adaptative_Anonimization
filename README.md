@@ -1,166 +1,189 @@
-# Data Anonymization Framework
+# Adaptive Anonymization with Mutual Information and Differential Privacy
 
-This project implements a comprehensive data anonymization framework with PCA-based transformations, adaptive noise calibration, and clustering algorithms. The framework allows analyzing the impact of anonymization on machine learning models and mathematical properties of datasets.
+This project implements an adaptive data anonymization framework that uses mutual information analysis combined with differential privacy mechanisms. The system dynamically allocates privacy budgets based on feature importance and correlation patterns, optimizing the utility-privacy trade-off for machine learning tasks.
 
-## Features
+## Key Features
 
-- PCA-based anonymization with differential privacy
-- Adaptive noise calibration with adjustable parameters
-- Stratified clustering for class-aware anonymization
-- Feature selection using Chi2 and ExtraTrees methods
-- Complete machine learning evaluation pipeline
-- Mathematical properties analysis
+- **MI-Adaptive Differential Privacy**: Dynamically allocates epsilon budget based on mutual information scores
+- **Correlation-Aware Noise Addition**: Groups correlated features for coordinated noise injection
+- **K-Means Clustering Integration**: Applies anonymization within data clusters for better utility preservation
+- **Feature Selection Integration**: Supports Chi2 and ExtraTrees feature selection methods
+- **Multi-Model Evaluation**: Tests 6 different ML models with hyperparameter optimization using Optuna
+- **Comprehensive Anonymization Scenarios**: Evaluates all combinations of anonymized/non-anonymized training and test sets
+
+## Core Algorithm
+
+The framework implements a novel MI-Adaptive Differential Privacy approach:
+
+1. **Mutual Information Analysis**: Calculates feature importance using mutual information with target variable
+2. **Feature Redundancy Detection**: Groups highly correlated features (correlation > threshold)
+3. **Adaptive Epsilon Allocation**: Allocates privacy budget inversely proportional to feature importance
+4. **Correlation-Aware Noise**: Adds coordinated noise to correlated feature groups
 
 ## Requirements
 
-- Python 3.7+
-- NumPy
-- SciPy
-- scikit-learn
-- pandas
-- matplotlib (optional for visualization)
-
-## Installation
+Install dependencies using:
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/anonymization-framework.git
-cd anonymization-framework
-
-# Install dependencies
 pip install -r requirements.txt
 ```
-
 ## Project Structure
 
-- `anonimization.py`: Core anonymization algorithms
-- `file_utils.py`: Dataset loading and preprocessing utilities
-- `ml.py`: Machine learning evaluation functions
-- `math_properties.py`: Mathematical property analysis
-- `main.py`: Main command-line interface
+```
+src/
+├── main.py                     # Main experiment runner with Optuna optimization
+├── ml.py                       # Cross-validation and model evaluation
+├── file_utils.py               # Dataset loading and preprocessing
+└── anonymization/
+    ├── anon_main.py           # MIAdaptiveDPAnonymizer main class
+    ├── clustering.py          # K-means clustering integration
+    ├── mu.py                  # Mutual information analysis
+    ├── noise_alocation.py     # Adaptive epsilon budget allocation
+    └── dp_mechanism.py        # Differential privacy noise mechanisms
+```
 
-## Available Datasets
+## Supported Datasets
 
-The framework includes support for the following datasets:
+The framework includes 7 pre-configured datasets:
 
-1. `adults`: Income classification (label: 'income')
-2. `ddos`: DDoS attack detection (label: 'Label')
-3. `heart`: Heart disease prediction (label: 'HeartDisease')
-4. `cmc`: Contraceptive method choice (label: 'method')
-5. `mgm`: MGM dataset (label: 'severity')
-6. `cahousing`: California housing (label: 'ocean_proximity')
+1. **adults**: Adult income classification (label: 'income')
+2. **bank**: Bank marketing campaign (label: 'y')  
+3. **ddos**: DDoS attack detection (label: 'Label')
+4. **heart**: Heart disease prediction (label: 'HeartDisease')
+5. **cmc**: Contraceptive method choice (label: 'method')
+6. **mgm**: Medical dataset (label: 'severity')
+7. **cahousing**: California housing classification (label: 'ocean_proximity')
 
 ## Usage
 
 ### Basic Usage
 
-Run the default experiment with the California housing dataset:
+Run with default parameters on California housing dataset:
 
 ```bash
-python main.py
+python src/main.py
 ```
 
-### Specify a Dataset
+### Specify Dataset and Parameters
 
 ```bash
-python main.py adults
-python main.py heart
-python main.py mgm
+python src/main.py adults --epsilon=1.0 --mi_weight=0.8 --correlation_threshold=0.7
 ```
 
-### Control Noise Level
+### Available Parameters
 
-Set the noise factor for anonymization (higher values = more noise):
+- `--epsilon=VALUE`: Privacy budget (default: 1.0)
+- `--mi_weight=VALUE`: Weight for MI-based allocation (default: 0.8) 
+- `--correlation_threshold=VALUE`: Correlation threshold for grouping (default: 0.7)
+- `--noise_type=TYPE`: 'laplace' or 'gaussian' (default: 'laplace')
+- `--n_trials=VALUE`: Optuna optimization trials per scenario (default: 20)
+
+### Examples
+
+High privacy protection:
+```bash
+python src/main.py heart --epsilon=0.1 --mi_weight=0.9
+```
+
+Focus on correlation patterns:
+```bash
+python src/main.py adults --correlation_threshold=0.5 --mi_weight=0.5
+```
+
+Fast experimentation:
+```bash
+python src/main.py mgm --n_trials=10
+```
+
+### Get Help
+
+Display available options and datasets:
 
 ```bash
-python main.py mgm --noise=0.01  # Default
-python main.py mgm --noise=0.1   # Medium noise
-python main.py mgm --noise=0.5   # High noise
-python main.py mgm --noise=2.0   # Very high noise
+python src/main.py --help
 ```
 
-### Mathematical Properties Experiment
+## Experimental Design
 
-Run only the mathematical properties analysis:
+The framework evaluates **4 anonymization scenarios** for each model:
 
-```bash
-python main.py mgm --math-only
-```
+1. **No Anonymization**: Original training and test data
+2. **Training Only**: Anonymized training data, original test data  
+3. **Testing Only**: Original training data, anonymized test data
+4. **Full Anonymization**: Both training and test data anonymized
 
-Run both ML experiment and mathematical properties analysis:
+### Machine Learning Models
 
-```bash
-python main.py mgm --math
-```
+The system tests 6 different models with automatic hyperparameter optimization:
 
-Specify custom noise levels for mathematical properties experiment:
+- **K-Nearest Neighbors (KNN)**
+- **Random Forest**
+- **Gaussian Naive Bayes**
+- **Multi-Layer Perceptron (MLP)**
+- **AdaBoost**
+- **Logistic Regression**
 
-```bash
-python main.py mgm --math-only --noise-levels=0.01,0.1,0.5,2.0
-```
+### Feature Selection Methods
 
-### Help Information
+Two feature selection approaches are automatically tested:
 
-Display help and available options:
-
-```bash
-python main.py --help
-```
-
-## Examples
-
-### Example 1: Run Chi2 and ExtraTree with default noise on Heart dataset
-
-```bash
-python main.py heart
-```
-
-### Example 2: Analyze mathematical properties of MGM dataset with different noise levels
-
-```bash
-python main.py mgm --math-only --noise-levels=0.01,0.05,0.1,0.5,1.0,2.0
-```
-
-### Example 3: Run complete analysis on Adults dataset with high noise
-
-```bash
-python main.py adults --noise=0.5 --math
-```
+- **Chi2**: Statistical test-based feature selection
 
 ## Output Files
 
-The experiments produce the following output files in the `results` directory:
+Results are saved in the `results/` directory:
 
-- `best_results_chi2_<dataset>_noise_<factor>.csv`: Chi2 experiment results
-- `best_results_extra_trees_<dataset>_noise_<factor>.csv`: ExtraTree experiment results
-- `math_properties_<dataset>_noise_<factor>.csv`: Individual mathematical properties
-- `math_properties_summary_<dataset>.csv`: Summary of mathematical properties across noise levels
+- `mi_adaptive_chi2_<dataset>_eps_<epsilon>_miw_<mi_weight>_<noise_type>_optuna.csv`
+- `mi_adaptive_extra_trees_<dataset>_eps_<epsilon>_miw_<mi_weight>_<noise_type>_optuna.csv`
 
-## Mathematical Properties Analysis
+### Result Columns
 
-The framework analyzes the following mathematical properties before and after anonymization:
+Each CSV contains:
+- `model`: ML model name
+- `anonymized_train/test`: Whether training/test data was anonymized  
+- `accuracy/precision/recall/f1_score`: Performance metrics
+- `anon_train_time/anon_test_time`: Anonymization processing times
+- `model_train_time`: Model training time
+- `selected_features`: Indices of selected features
+- `feature_method`: Feature selection method used
+- `num_features`: Number of features selected
+- `best_params`: Optimal hyperparameters found by Optuna
 
-1. **Basic Statistical Properties**
-   - Mean difference
-   - Standard deviation difference
-   - Skewness difference
-   - Kurtosis difference
+## Algorithm Details
 
-2. **Structural Properties**
-   - Covariance matrix changes
-   - Covariance similarity (cosine)
+### MI-Adaptive Epsilon Allocation
 
-3. **Distance Preservation**
-   - Pairwise distance correlation
-   - Nearest neighbor preservation
+The privacy budget allocation follows:
 
-4. **PCA Variance Preservation**
-   - Variance preservation ratio
-   - Principal component comparison
+```
+epsilon_i = base_epsilon + adaptive_epsilon * (1 - importance_i * mi_weight)
+```
 
-5. **Class Separation**
-   - Class separation correlation
+Where:
+- `base_epsilon = total_epsilon * min_epsilon_ratio` (minimum privacy for each feature)
+- `importance_i` is the normalized mutual information score
+- `mi_weight` controls the strength of adaptive allocation
 
-6. **Performance Metrics**
-   - Anonymization time
+### Correlation-Aware Noise
+
+For correlated feature groups:
+1. Calculate group correlation matrix
+2. Add coordinated noise based on correlation strength  
+3. Apply correlation factor to adjust noise variance
+
+
+
+## Privacy Guarantees
+
+The framework provides **ε-differential privacy** with:
+- Formal privacy accounting across clusters
+- Adaptive budget allocation based on feature utility
+- Support for both Laplace and Gaussian noise mechanisms
+
+## Performance Optimization
+
+- **Optuna Integration**: Automatic hyperparameter tuning for all models
+- **Cross-Validation**: 3-fold stratified cross-validation for robust evaluation
+- **Feature Selection**: Reduces dimensionality before anonymization
+- **Clustering**: Improves utility by preserving local data structure
 
